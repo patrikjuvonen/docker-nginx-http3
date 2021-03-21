@@ -42,35 +42,9 @@ RUN set -x; GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
   --user=nginx \
   --group=nginx \
-  --with-pcre-jit \
   --with-http_ssl_module \
-  --with-http_realip_module \
-  --with-http_addition_module \
-  --with-http_sub_module \
-  --with-http_dav_module \
-  --with-http_flv_module \
-  --with-http_mp4_module \
-  --with-http_gunzip_module \
-  --with-http_gzip_static_module \
-  --with-http_random_index_module \
-  --with-http_secure_link_module \
-  --with-http_stub_status_module \
   --with-http_auth_request_module \
-  --with-http_xslt_module=dynamic \
-  --with-http_image_filter_module=dynamic \
-  --with-http_geoip_module=dynamic \
-  --with-http_perl_module=dynamic \
   --with-threads \
-  --with-stream \
-  --with-stream_ssl_module \
-  --with-stream_ssl_preread_module \
-  --with-stream_realip_module \
-  --with-stream_geoip_module=dynamic \
-  --with-http_slice_module \
-  --with-mail \
-  --with-mail_ssl_module \
-  --with-compat \
-  --with-file-aio \
   --with-http_v2_module \
   --with-http_v3_module \
   --with-openssl=/usr/src/quiche/deps/boringssl \
@@ -177,9 +151,7 @@ RUN set -x; GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && install -m644 html/50x.html /usr/share/nginx/html/ \
   && install -m444 /usr/src/ModSecurity/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf \
   && install -m444 /usr/src/ModSecurity/unicode.mapping /etc/nginx/modsec/unicode.mapping \
-  && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
   && strip /usr/sbin/nginx* \
-  && strip /usr/lib/nginx/modules/*.so \
   && strip /usr/local/modsecurity/bin/* \
   && strip /usr/local/modsecurity/lib/*.so.* \
   && strip /usr/local/modsecurity/lib/*.a \
@@ -194,7 +166,7 @@ RUN set -x; GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && mv /usr/bin/envsubst /tmp/ \
   \
   && runDeps="$( \
-  scanelf --needed --nobanner /usr/sbin/nginx /usr/lib/nginx/modules/*.so /tmp/envsubst \
+  scanelf --needed --nobanner /usr/sbin/nginx /tmp/envsubst \
   | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
   | sort -u \
   | xargs -r apk info --installed \
@@ -212,7 +184,6 @@ RUN set -x; GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 FROM alpine:latest
 
 COPY --from=builder /usr/sbin/nginx /usr/sbin/
-COPY --from=builder /usr/lib/nginx /usr/lib/nginx
 COPY --from=builder /usr/share/nginx/html/* /usr/share/nginx/html/
 COPY --from=builder /etc/nginx/ /etc/nginx/
 COPY --from=builder /usr/local/bin/envsubst /usr/local/bin/
