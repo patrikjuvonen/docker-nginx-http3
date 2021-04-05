@@ -7,7 +7,7 @@
 ![GitHub](https://img.shields.io/github/license/patrikjuvonen/docker-nginx-http3)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code_of_conduct.md)
 
-Alpine Linux image with nginx `1.19.8` (mainline) with HTTP/3 (QUIC), TLSv1.3, 0-RTT, brotli, NJS, Cookie-Flag, headers, ModSecurity with coreruleset and BoringSSL with OCSP support. All built on the bleeding edge. Built on the edge, for the edge.
+Alpine Linux image with nginx `1.19.9` (mainline) with HTTP/3 (QUIC), TLSv1.3, 0-RTT, brotli, NJS, Cookie-Flag, headers, ModSecurity with coreruleset and BoringSSL with OCSP support. All built on the bleeding edge. Built on the edge, for the edge.
 
 Total size is only about ~38 MB uncompressed and ~14 MB compressed.
 
