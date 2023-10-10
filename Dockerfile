@@ -1,6 +1,6 @@
 ##################################################
-# Nginx with Quiche (HTTP/3), Brotli, Headers More
-# and ModSec modules.
+# Nginx HTTP/3, Brotli, Headers More and ModSec
+# modules.
 ##################################################
 # This is a fork of:
 # github.com/ranadeeppolavarapu/docker-nginx-http3
@@ -8,9 +8,6 @@
 # Special in this fork:
 # - ModSecurity for nginx (SpiderLabs) with
 #   coreruleset
-# - HPACK enabled and nginx quiche patch by
-#   kn007/patch
-# - BoringSSL OCSP enabled with kn007/patch
 # - Removed nginx debug build
 #
 # Thanks to ranadeeppolavarapu/docker-nginx-http3
@@ -19,18 +16,17 @@
 
 FROM alpine:edge AS deps
 
-ARG NGINX_VERSION=1.23.4
-ARG QUICHE_CHECKOUT=883a616f0bf3258f1898e0fad0c3707c630f81b0
+ARG NGINX_VERSION=1.25.2
 ARG MODSEC_TAG=v3/master
 ARG MODSEC_NGX_TAG=master
 ARG NJS_TAG=0.8.1
 
-ARG BUILD_DATE
-ARG VCS_REF
-ARG GITHUB_REF
-ARG GITHUB_RUN_ID
-ARG GITHUB_RUN_NUMBER
-ARG GITHUB_RUN_ATTEMPT
+ARG BUILD_DATE=1
+ARG VCS_REF=1
+ARG GITHUB_REF=1
+ARG GITHUB_RUN_ID=1
+ARG GITHUB_RUN_NUMBER=1
+ARG GITHUB_RUN_ATTEMPT=1
 
 ARG GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967
 
@@ -80,10 +76,7 @@ ARG CONFIG=" \
   --with-compat \
   --with-file-aio \
   --with-http_v2_module \
-  --with-http_v2_hpack_enc \
   --with-http_v3_module \
-  --with-openssl=/usr/src/quiche/quiche/deps/boringssl \
-  --with-quiche=/usr/src/quiche \
   --add-module=/usr/src/ngx_brotli \
   --add-module=/usr/src/headers-more-nginx-module \
   --add-module=/usr/src/njs/nginx \
@@ -95,7 +88,7 @@ ARG CONFIG=" \
 "
 
 RUN set -eux \
-  && echo $NGINX_VERSION $QUICHE_CHECKOUT $MODSEC_TAG $MODSEC_NGX_TAG $NJS_TAG $BUILD_DATE $VCS_REF $GITHUB_REF $GITHUB_RUN_ID $GITHUB_RUN_NUMBER $GITHUB_RUN_ATTEMPT $GPG_KEYS $CONFIG \
+  && echo $NGINX_VERSION $MODSEC_TAG $MODSEC_NGX_TAG $NJS_TAG $BUILD_DATE $VCS_REF $GITHUB_REF $GITHUB_RUN_ID $GITHUB_RUN_NUMBER $GITHUB_RUN_ATTEMPT $GPG_KEYS $CONFIG \
   && addgroup -S nginx \
   && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
   && apk update \
@@ -114,6 +107,7 @@ RUN set -eux \
   gd-dev \
   geoip-dev \
   perl-dev \
+  openssl-dev \
   && apk add --no-cache --virtual .brotli-build-deps \
   autoconf \
   libtool \
@@ -125,7 +119,6 @@ RUN set -eux \
   perl \
   rust \
   cargo \
-  patch \
   && apk add --no-cache --virtual .modsec-build-deps \
   libxml2-dev \
   byacc \
@@ -149,11 +142,6 @@ RUN git clone --branch $NJS_TAG --depth=1 --recursive --shallow-submodules https
 FROM deps AS clone_nginx_cookie_flag_module
 RUN git clone --depth=1 --recursive --shallow-submodules https://github.com/AirisX/nginx_cookie_flag_module
 
-FROM deps AS clone_quiche
-RUN git clone --recursive https://github.com/cloudflare/quiche \
-  && cd quiche \
-  && git checkout --recurse-submodules $QUICHE_CHECKOUT
-
 FROM deps AS clone_modsecurity
 RUN set -eux \
   && git clone --recursive --branch $MODSEC_TAG --single-branch https://github.com/SpiderLabs/ModSecurity \
@@ -174,10 +162,7 @@ RUN git clone --depth=1 https://github.com/coreruleset/coreruleset /usr/local/sh
   && cp /usr/local/share/coreruleset/crs-setup.conf.example /usr/local/share/coreruleset/crs-setup.conf
 
 FROM deps AS clone_nginx
-COPY nginx.patch /usr/src/nginx.patch
 RUN set -eux \
-  && wget -q https://raw.githubusercontent.com/kn007/patch/ce70f81a3098afe0e27a8e579b77b6fb32870c54/nginx_with_quic.patch \
-  && wget -q https://raw.githubusercontent.com/kn007/patch/cd03b77647c9bf7179acac0125151a0fbb4ac7c8/Enable_BoringSSL_OCSP.patch \
   && wget -qO nginx.tar.gz https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz \
   && wget -qO nginx.tar.gz.asc https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc \
   && export GNUPGHOME="$(mktemp -d)" \
@@ -196,17 +181,13 @@ RUN set -eux \
   && rm -rf "$GNUPGHOME" nginx.tar.gz.asc \
   && tar -zxC /usr/src -f nginx.tar.gz \
   && rm nginx.tar.gz \
-  && cd /usr/src/nginx-$NGINX_VERSION \
-  && patch -p01 < /usr/src/nginx_with_quic.patch \
-  && patch -p01 < /usr/src/Enable_BoringSSL_OCSP.patch \
-  && patch -p01 < /usr/src/nginx.patch
+  && cd /usr/src/nginx-$NGINX_VERSION
 
 FROM deps AS builder
 COPY --from=clone_nginx /usr/src/nginx-$NGINX_VERSION /usr/src/nginx-$NGINX_VERSION
 COPY --from=clone_coreruleset /usr/local/share/coreruleset /usr/local/share/coreruleset
 COPY --from=clone_modsecurity /usr/local/modsecurity /usr/local/modsecurity
 COPY --from=clone_modsecurity-nginx /usr/src/ModSecurity-nginx /usr/src/ModSecurity-nginx
-COPY --from=clone_quiche /usr/src/quiche /usr/src/quiche
 COPY --from=clone_ngx_brotli /usr/src/ngx_brotli /usr/src/ngx_brotli
 COPY --from=clone_headers-more-nginx-module /usr/src/headers-more-nginx-module /usr/src/headers-more-nginx-module
 COPY --from=clone_njs /usr/src/njs /usr/src/njs
@@ -215,7 +196,7 @@ RUN set -eux \
   && mkdir /root/.cargo \
   && echo $'[net]\ngit-fetch-with-cli = true' > /root/.cargo/config.toml \
   && cd /usr/src/nginx-$NGINX_VERSION \
-  && ./configure $CONFIG --build="docker-nginx-http3-$VCS_REF-$BUILD_DATE-$GITHUB_REF-$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER-$GITHUB_RUN_ATTEMPT ModSecurity-$(git --git-dir=/usr/src/ModSecurity/.git rev-parse --short HEAD) ModSecurity-nginx-$(git --git-dir=/usr/src/ModSecurity-nginx/.git rev-parse --short HEAD) coreruleset-$(git --git-dir=/usr/local/share/coreruleset/.git rev-parse --short HEAD) quiche-$(git --git-dir=/usr/src/quiche/.git rev-parse --short HEAD) ngx_brotli-$(git --git-dir=/usr/src/ngx_brotli/.git rev-parse --short HEAD) headers-more-nginx-module-$(git --git-dir=/usr/src/headers-more-nginx-module/.git rev-parse --short HEAD) njs-$(git --git-dir=/usr/src/njs/.git rev-parse --short HEAD) nginx_cookie_flag_module-$(git --git-dir=/usr/src/nginx_cookie_flag_module/.git rev-parse --short HEAD)" \
+  && ./configure $CONFIG --build="docker-nginx-http3-$VCS_REF-$BUILD_DATE-$GITHUB_REF-$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER-$GITHUB_RUN_ATTEMPT ModSecurity-$(git --git-dir=/usr/src/ModSecurity/.git rev-parse --short HEAD) ModSecurity-nginx-$(git --git-dir=/usr/src/ModSecurity-nginx/.git rev-parse --short HEAD) coreruleset-$(git --git-dir=/usr/local/share/coreruleset/.git rev-parse --short HEAD) ngx_brotli-$(git --git-dir=/usr/src/ngx_brotli/.git rev-parse --short HEAD) headers-more-nginx-module-$(git --git-dir=/usr/src/headers-more-nginx-module/.git rev-parse --short HEAD) njs-$(git --git-dir=/usr/src/njs/.git rev-parse --short HEAD) nginx_cookie_flag_module-$(git --git-dir=/usr/src/nginx_cookie_flag_module/.git rev-parse --short HEAD)" \
   && make -j$(getconf _NPROCESSORS_ONLN) \
   && make -j$(getconf _NPROCESSORS_ONLN) install
 
