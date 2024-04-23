@@ -1,4 +1,4 @@
-name: ci
+name: ci-ghcr
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3
+            ghcr.io/${{ github.repository_owner }}/docker-nginx-http3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -42,12 +42,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker build and push
         id: build
@@ -104,7 +105,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3
+            ghcr.io/${{ github.repository_owner }}/docker-nginx-http3
           tags: |
             type=schedule
             type=ref,event=branch
@@ -115,20 +116,21 @@ jobs:
             type=sha,prefix=
             type=sha,prefix=,format=long
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifest list and push
         if: github.event_name != 'pull_request'
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3@sha256:%s ' *)
+            $(printf 'ghcr.io/${{ github.repository_owner }}/docker-nginx-http3@sha256:%s ' *)
 
       - name: Inspect images
         run: |
-          docker buildx imagetools inspect ${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/docker-nginx-http3:${{ steps.meta.outputs.version }}

@@ -40,7 +40,7 @@ jobs:
       # Snyk can be used to break the build when it detects vulnerabilities.
       # In this case we want to upload the issues to GitHub Code Scanning
       continue-on-error: true
-      uses: snyk/actions/docker@299cde98a08ff8b1c2bfde1e5a067bce67a6d2b8
+      uses: snyk/actions/docker@8349f9043a8b7f0f3ee8885bf28f0b388d2446e8
       env:
         # In order to use the Snyk Action you will need to have a Snyk API token.
         # More details in https://github.com/snyk/actions#getting-your-snyk-token
@@ -50,6 +50,6 @@ jobs:
         image: patrikjuvonen/docker-nginx-http3:snyk-ci
         args: --file=Dockerfile
     - name: Upload result to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: snyk.sarif

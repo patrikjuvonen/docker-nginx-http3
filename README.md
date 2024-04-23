@@ -3,7 +3,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/patrikjuvonen/docker-nginx-http3?color=brightgreen)](https://hub.docker.com/r/patrikjuvonen/docker-nginx-http3)
 ![MIT License](https://img.shields.io/github/license/patrikjuvonen/docker-nginx-http3)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code_of_conduct.md)
-[![Build Status](https://github.com/patrikjuvonen/docker-nginx-http3/workflows/Build%20image/badge.svg?event=push&branch=master)](https://github.com/patrikjuvonen/docker-nginx-http3/actions?query=branch%3Amaster+event%3Apush)
+[![Build Status](https://github.com/patrikjuvonen/docker-nginx-http3/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/patrikjuvonen/docker-nginx-http3/actions/workflows/ci.yml?event=push)
 [![Arch](https://img.shields.io/badge/docker%20arch-linux%2Famd64-blue)](https://hub.docker.com/r/patrikjuvonen/docker-nginx-http3/tags)
 [![Arch](https://img.shields.io/badge/docker%20arch-linux%2Farm64-blue)](https://hub.docker.com/r/patrikjuvonen/docker-nginx-http3/tags)
 [![Arch](https://img.shields.io/badge/docker%20arch-linux%2Farm%2Fv7-blue)](https://hub.docker.com/r/patrikjuvonen/docker-nginx-http3/tags)
@@ -14,7 +14,7 @@ Alpine Linux image with nginx `1.23.4` (mainline) with HTTP/3 (QUIC), TLSv1.3,
 and BoringSSL with OCSP support. All built on the bleeding edge. Built on the
 edge, for the edge.
 
-Total size is only about ~34 MB uncompressed and ~12 MB compressed.
+Total size is only about ~47 MB uncompressed and ~12 MB compressed.
 
 This is a fork of
 [ranadeeppolavarapu/docker-nginx-http3](https://github.com/ranadeeppolavarapu/docker-nginx-http3).
@@ -45,7 +45,7 @@ Images for this are available on
 
 Semantic versioning is enabled since [519e20d7f65d53b976cf7d13e364dca326e988b7](https://github.com/patrikjuvonen/docker-nginx-http3/commit/519e20d7f65d53b976cf7d13e364dca326e988b7),
 the first semantic version being 2.0.0. You can use a semantical version using tags
-such as `:2.1.1`, `:2.1`, `:2`. I also provide a `latest` tag which is the latest
+such as `:x.y.z`, `:x.y`, `:x`. I also provide a `latest` tag which is the latest
 release, and `master` which is the latest image from master branch.
 
 This is a base image like the default _nginx_ image. It is meant to be used as a
