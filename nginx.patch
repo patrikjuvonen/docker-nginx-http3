@@ -1,7 +1,16 @@
 diff --git a/src/http/v3/ngx_http_v3.c b/src/http/v3/ngx_http_v3.c
-index 77f04f1..de3d044 100644
+index 77f04f1..b438e9e 100644
 --- a/src/http/v3/ngx_http_v3.c
 +++ b/src/http/v3/ngx_http_v3.c
+@@ -300,7 +300,7 @@ ngx_http_v3_process_headers(ngx_connection_t *c, quiche_h3_event *ev,
+         return;
+     }
+ 
+-    stream->in_closed = !quiche_h3_event_headers_has_body(ev);
++    stream->in_closed = !quiche_h3_event_headers_has_more_frames(ev);
+ 
+     ngx_http_v3_run_request(stream->request);
+ }
 @@ -462,9 +462,6 @@ ngx_http_v3_handler(ngx_connection_t *c)
              case QUICHE_H3_EVENT_PRIORITY_UPDATE:
                  break;
