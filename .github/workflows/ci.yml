@@ -10,21 +10,26 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform.os }}
+
     strategy:
       fail-fast: false
       matrix:
         platform:
-          - linux/amd64
-          - linux/arm/v6
-          - linux/arm/v7
-          - linux/arm64
+          - os: ubuntu-latest
+            platform: linux/amd64
+          - os: ubuntu-latest
+            platform: linux/arm/v6
+          - os: ubuntu-latest
+            platform: linux/arm/v7
+          - os: ubuntu-24.04-arm
+            platform: linux/arm64
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set Environment Variables
+      - name: Set environment variables
         run: |
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
           echo "VCS_REF=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
@@ -33,10 +38,14 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          flavor: |
+            latest=false
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3
+            ghcr.io/${{ github.repository_owner }}/docker-nginx-http3
 
       - name: Set up QEMU
+        if: ${{ (matrix.platform.platform == 'linux/arm/v6') || matrix.platform.platform == 'linux/arm/v7' }}
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -49,15 +58,25 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Docker build and push
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: ${{ matrix.platform.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ steps.meta.outputs.tags }}
+          outputs: type=image,"name=${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3,ghcr.io/${{ github.repository_owner }}/docker-nginx-http3",push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ github.repository }}-${{ github.ref_name }}-${{ matrix.platform.platform }}
+          cache-to: type=gha,scope=${{ github.repository }}-${{ github.ref_name }}-${{ matrix.platform.platform }},mode=max
           build-args: |
             BUILD_DATE=${{ env.BUILD_DATE }}
             VCS_REF=${{ env.VCS_REF }}
@@ -68,31 +87,33 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests
+          mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
       - name: Platform slug
         id: platform-slug
-        run: echo "platform=${{ matrix.platform }}" | tr '/' '-' >> $GITHUB_OUTPUT
+        run: echo "platform=${{ matrix.platform.platform }}" | tr '/' '-' >> $GITHUB_OUTPUT
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ steps.platform-slug.outputs.platform }}
-          path: /tmp/digests/*
+          path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
   merge:
     runs-on: ubuntu-latest
+
     needs:
       - build
+
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/digests
+          path: ${{ runner.temp }}/digests
           pattern: digests-*
           merge-multiple: true
 
@@ -103,8 +124,11 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          flavor: |
+            latest=false
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3
+            ghcr.io/${{ github.repository_owner }}/docker-nginx-http3
           tags: |
             type=schedule
             type=ref,event=branch
@@ -122,13 +146,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create manifest list and push
         if: github.event_name != 'pull_request'
-        working-directory: /tmp/digests
+        working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'ghcr.io/${{ github.repository_owner }}/docker-nginx-http3@sha256:%s ' *)
 
       - name: Inspect images
         run: |
           docker buildx imagetools inspect ${{ secrets.DOCKERHUB_USERNAME }}/docker-nginx-http3:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/docker-nginx-http3:${{ steps.meta.outputs.version }}
