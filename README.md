@@ -11,10 +11,9 @@
 
 Alpine Linux image with nginx `1.23.4` (mainline) with HTTP/3 (QUIC), TLSv1.3,
 0-RTT, HPACK, brotli, NJS, Cookie-Flag, headers, ModSecurity with coreruleset
-and BoringSSL with OCSP support. All built on the bleeding edge. Built on the
-edge, for the edge.
+and BoringSSL with OCSP support.
 
-Total size is only about ~47 MB uncompressed and ~12 MB compressed.
+Total size is only about ~47 MB uncompressed.
 
 This is a fork of
 [ranadeeppolavarapu/docker-nginx-http3](https://github.com/ranadeeppolavarapu/docker-nginx-http3).
