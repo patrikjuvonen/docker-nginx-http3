@@ -133,7 +133,8 @@ RUN set -eux \
   libstdc++ \
   libmaxminddb-dev \
   lmdb-dev \
-  file
+  file \
+  pcre2-dev
 
 WORKDIR /usr/src/
 
