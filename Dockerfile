@@ -206,6 +206,7 @@ FROM deps AS builder
 COPY --from=clone_nginx /usr/src/nginx-$NGINX_VERSION /usr/src/nginx-$NGINX_VERSION
 COPY --from=clone_coreruleset /usr/local/share/coreruleset /usr/local/share/coreruleset
 COPY --from=clone_modsecurity /usr/local/modsecurity /usr/local/modsecurity
+COPY --from=clone_modsecurity /usr/src/ModSecurity /usr/src/ModSecurity
 COPY --from=clone_modsecurity-nginx /usr/src/ModSecurity-nginx /usr/src/ModSecurity-nginx
 COPY --from=clone_quiche /usr/src/quiche /usr/src/quiche
 COPY --from=clone_ngx_brotli /usr/src/ngx_brotli /usr/src/ngx_brotli
